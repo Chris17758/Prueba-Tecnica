@@ -1,0 +1,109 @@
+{
+	"info": {
+		"_postman_id": "4ddebf30-5f08-402a-bcf7-039cef4c2dd3",
+		"name": "Usuarios",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "33760753"
+	},
+	"item": [
+		{
+			"name": "ObtenerUsuarios",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "https://localhost:7047/api/users"
+			},
+			"response": []
+		},
+		{
+			"name": "ObtenerUsuariosPorId",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "https://localhost:7047/api/users/{id}"
+			},
+			"response": []
+		},
+		{
+			"name": "CrearUsuario",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"FirstName\": \"Alexander\",\r\n  \"LastName\": \"Rivas\",\r\n  \"Email\": \"alex@example.com\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "https://localhost:7047/api/users"
+			},
+			"response": []
+		},
+		{
+			"name": "ActualizarUsuario",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"UserId\": 6,\r\n  \"FirstName\": \"Alexander\",\r\n  \"LastName\": \"Menjivar\",\r\n  \"Email\": \"alex@example.com\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "https://localhost:7047/api/users/{id}"
+			},
+			"response": []
+		},
+		{
+			"name": "EliminarUsuario",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": "https://localhost:7047/api/users/{id}"
+			},
+			"response": []
+		},
+		{
+			"name": "ObtenerUsuariosConTarjetasC",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "https://localhost:7047/api/users/userswithcreditcards"
+			},
+			"response": []
+		},
+		{
+			"name": "ObtenerEstadoDeCuentaUsuario",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://localhost:7047/api/users/userStatement?userId={id}",
+					"protocol": "https",
+					"host": [
+						"localhost"
+					],
+					"port": "7047",
+					"path": [
+						"api",
+						"users",
+						"userStatement"
+					],
+					"query": [
+						{
+							"key": "userId",
+							"value": "{id}"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

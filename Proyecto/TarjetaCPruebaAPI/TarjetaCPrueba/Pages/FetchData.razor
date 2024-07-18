@@ -1,0 +1,98 @@
+﻿@page "/"
+@page "/fetchdata"
+@using TarjetaCPruebaAPI.Models
+@inject HttpClient HttpClient
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<h3>Usuarios</h3>
+<br />
+
+@if (Users == null)
+{
+    <p><em>Cargando...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Nombre</th>
+                <th>Apellido</th>
+                <th>Número de Tarjeta</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in Users)
+            {
+                <tr>
+                    <td>@user.FirstName</td>
+                    <td>@user.LastName</td>
+                    <td>@HideCardNumberMiddleDigits(user.CardNumber)</td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="() => NavigateToInfoTarjeta(user.UserId)">Estado de Cuenta</button>
+                        <button class="btn btn-success" @onclick="() => NavigateToAgregarCompra(user.UserId)">Registrar Compras</button>
+                        <button class="btn btn-info" @onclick="() => NavigateToRegistroDePago(user.UserId)">Registrar Pago</button>
+                        <button class="btn btn-warning" @onclick="() => NavigateToTransacciones(user.UserId)">Transacciones</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    List<UserWithCreditCard> Users;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUsers();
+    }
+
+    private async Task LoadUsers()
+    {
+        try
+        {
+            Users = await HttpClient.GetFromJsonAsync<List<UserWithCreditCard>>("https://localhost:7047/api/users/userswithcreditcards");
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"Error al cargar usuarios: {ex.Message}");
+        }
+    }
+
+    private string HideCardNumberMiddleDigits(string cardNumber)
+    {
+        if (string.IsNullOrEmpty(cardNumber) || cardNumber.Length != 16)
+        {
+            return cardNumber;
+        }
+
+        int visibleDigits = 6; // Mostrar los primeros 6 y últimos 4 dígitos
+        string hiddenPart = new string('*', 6); // Ocultar los 6 dígitos intermedios
+        string visiblePart = cardNumber.Substring(0, 6) + hiddenPart + cardNumber.Substring(12, 4);
+
+        return visiblePart;
+    }
+
+    private void NavigateToInfoTarjeta(int userId)
+    {
+        NavigationManager.NavigateTo($"/infotarjeta/{userId}");
+    }
+
+    private void NavigateToAgregarCompra(int userId)
+    {
+        NavigationManager.NavigateTo($"/agregarcompra/{userId}");
+    }
+
+    private void NavigateToRegistroDePago(int userId)
+    {
+        NavigationManager.NavigateTo($"/adddeposit/{userId}");
+    }
+
+    private void NavigateToTransacciones(int userId)
+    {
+        NavigationManager.NavigateTo($"/transacciones/{userId}");
+    }
+}

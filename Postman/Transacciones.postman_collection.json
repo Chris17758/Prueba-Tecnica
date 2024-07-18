@@ -1,0 +1,73 @@
+{
+	"info": {
+		"_postman_id": "0e03bb8e-f3d5-411d-824f-6c25d8ce7bb4",
+		"name": "Transacciones",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "33760753"
+	},
+	"item": [
+		{
+			"name": "ObtenerTransacciones",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "https://localhost:7047/api/transactions"
+			},
+			"response": []
+		},
+		{
+			"name": "ObtenerTransaccionPorId",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "https://localhost:7047/api/transactions/{id}"
+			},
+			"response": []
+		},
+		{
+			"name": "GuardarTransaccion",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"CardId\": 1,\r\n  \"TransactionType\": \"Compra\",\r\n  \"Amount\": 100.00,\r\n  \"Description\": \"Compra en tienda\",\r\n  \"TransactionDate\": \"2024-07-17T12:00:00\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "https://localhost:7047/api/transactions/SaveTransaction"
+			},
+			"response": []
+		},
+		{
+			"name": "ActualizarTransaccion",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"TransactionId\": 72,\r\n  \"CardId\": 1,\r\n  \"TransactionType\": \"Compra\",\r\n  \"Amount\": 150.00,\r\n  \"Description\": \"Compra actualizada en tienda\",\r\n  \"TransactionDate\": \"2024-07-17T12:00:00\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "https://localhost:7047/api/transactions/{id}"
+			},
+			"response": []
+		},
+		{
+			"name": "EliminarTransaccion",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": "https://localhost:7047/api/transactions/{id}"
+			},
+			"response": []
+		}
+	]
+}

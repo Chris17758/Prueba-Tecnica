@@ -1,0 +1,101 @@
+﻿@page "/transacciones/{userId:int}"
+@using System.Text.Json
+@using TarjetaCPruebaAPI.Models
+@inject HttpClient HttpClient
+@inject NavigationManager NavigationManager
+
+<h3>Información de Transacciones de la Tarjeta de Crédito</h3>
+
+@if (Users == null || CreditCards == null || Transactions == null)
+{
+    <p><em>Cargando datos...</em></p>
+}
+else
+{
+    var user = Users.FirstOrDefault(u => u.UserId == UserId);
+    var creditCard = CreditCards.FirstOrDefault(c => c.UserId == UserId);
+
+    @if (user != null && creditCard != null)
+    {
+        <div>
+            <p><strong>Nombre del Cliente:</strong> @user.FirstName @user.LastName</p>
+            <p><strong>Número de Tarjeta:</strong> @HideCardNumberMiddleDigits(creditCard.CardNumber)</p>
+        </div>
+
+        <h4>Transacciones</h4>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Fecha y Hora</th>
+                    <th>Descripción</th>
+                    <th>Compra</th>
+                    <th>Abono</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var transaction in Transactions.Where(t => t.CardId == creditCard.CardId).OrderByDescending(t => t.TransactionDate))
+                {
+                    <tr>
+                        <td>@transaction.TransactionDate.ToString("g")</td> <!-- Formato general: incluye fecha y hora -->
+                        <td>@transaction.Description</td>
+                        <td>@(transaction.TransactionType == "Compra" ? $"${transaction.Amount:F2}" : "")</td> <!-- Mostrar monto de compra con formato decimal -->
+                        <td>@(transaction.TransactionType == "Abono" ? $"${transaction.Amount:F2}" : "")</td> <!-- Mostrar monto de abono con formato decimal -->
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p><em>No se encontró información para este usuario y tarjeta de crédito.</em></p>
+    }
+}
+
+@code {
+    private List<UserWithCreditCard> Users;
+    private List<CreditCard> CreditCards;
+    private List<Transaction> Transactions;
+
+    [Parameter]
+    public int UserId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        try
+        {
+            Users = await HttpClient.GetFromJsonAsync<List<UserWithCreditCard>>("https://localhost:7047/api/users/userswithcreditcards");
+            CreditCards = await HttpClient.GetFromJsonAsync<List<CreditCard>>("https://localhost:7047/api/creditcards");
+            Transactions = await HttpClient.GetFromJsonAsync<List<Transaction>>("https://localhost:7047/api/transactions");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar datos: {ex.Message}");
+        }
+
+        // Ordenar las transacciones por fecha de manera descendente y por hora
+        if (Transactions != null)
+        {
+            Transactions = Transactions.OrderByDescending(t => t.TransactionDate).ToList();
+        }
+    }
+
+    private string HideCardNumberMiddleDigits(string cardNumber)
+    {
+        if (string.IsNullOrEmpty(cardNumber) || cardNumber.Length != 16)
+        {
+            return cardNumber;
+        }
+
+        int visibleDigits = 6; // Mostrar los primeros 6 y últimos 4 dígitos
+        string hiddenPart = new string('*', 4); // Ocultar los 4 dígitos intermedios
+        string visiblePart = cardNumber.Substring(0, 6) + hiddenPart + cardNumber.Substring(10, 4);
+
+        return visiblePart;
+    }
+}
+

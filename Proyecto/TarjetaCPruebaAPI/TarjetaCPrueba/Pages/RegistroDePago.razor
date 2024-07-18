@@ -1,0 +1,165 @@
+﻿@page "/adddeposit/{userId:int}"
+@using System.Text.Json
+@using TarjetaCPruebaAPI.Models
+@inject HttpClient HttpClient
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<h3>Registro de Pagos</h3>
+<br />
+
+<div class="container">
+    <div class="mb-3">
+        @if (SelectedUser == null)
+        {
+            <p><em>Cargando titular de tarjeta...</em></p>
+        }
+        else
+        {
+            <div class="row">
+                <div class="col-5">
+                    <div class="mb-3">
+                        <div class="form-group">
+                            <label for="userId">Titular de Tarjeta:</label>
+                            <input id="userId" class="form-control" value="@($"{SelectedUser.FirstName} {SelectedUser.LastName}")" readonly />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            @if (SelectedUser.CreditCards == null || !SelectedUser.CreditCards.Any())
+            {
+                <p><em>Este usuario no tiene tarjetas registradas.</em></p>
+            }
+            else
+            {
+                <div class="row">
+                    <div class="col-5">
+                        <div class="mb-3">
+                            <div>
+                                <p><strong>Nombre del Cliente:</strong> @SelectedUser.FirstName @SelectedUser.LastName</p>
+                                <p><strong>Número de Tarjeta:</strong> @HideCardNumberMiddleDigits(SelectedUser.CreditCards.FirstOrDefault()?.CardNumber)</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-5">
+                        <div class="mb-3">
+                            <div class="form-group">
+                                <label for="transactionDate">Fecha y Hora de Abono:</label>
+                                <input type="datetime-local" id="transactionDate" class="form-control" @bind="TransactionDate" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-5">
+                        <div class="mb-3">
+                            <div class="form-group">
+                                <label for="amount">Monto del Abono:</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">$</span>
+                                    <input type="number" id="amount" class="form-control" @bind="Amount" step="0.01" min="0" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" @onclick="SaveDeposit">Guardar Abono</button>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    private UserWithCreditCard SelectedUser;
+    private int SelectedCardId { get; set; }
+    private DateTime TransactionDate { get; set; } = DateTime.Now; // Inicializar con la fecha y hora actual
+    private decimal Amount { get; set; }
+
+    [Parameter]
+    public int userId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSelectedUserAndCards();
+    }
+
+    private async Task LoadSelectedUserAndCards()
+    {
+        try
+        {
+            SelectedUser = await HttpClient.GetFromJsonAsync<UserWithCreditCard>($"https://localhost:7047/api/users/{userId}");
+            SelectedCardId = SelectedUser?.CreditCards?.FirstOrDefault()?.CardId ?? 0;
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"Error al cargar usuario: {ex.Message}");
+        }
+    }
+
+    private string HideCardNumberMiddleDigits(string cardNumber)
+    {
+        if (string.IsNullOrEmpty(cardNumber) || cardNumber.Length != 16)
+        {
+            return cardNumber;
+        }
+
+        int visibleDigits = 6; // Mostrar los primeros 6 y últimos 4 dígitos
+        string hiddenPart = new string('*', 4); // Ocultar los 4 dígitos intermedios
+        string visiblePart = cardNumber.Substring(0, 6) + hiddenPart + cardNumber.Substring(10, 4);
+
+        return visiblePart;
+    }
+
+    private async Task SaveDeposit()
+    {
+        if (SelectedCardId == 0)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Este usuario no tiene tarjetas registradas.");
+            return;
+        }
+
+        if (Amount <= 0)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "El monto del abono debe ser positivo.");
+            return;
+        }
+
+        var transaction = new Transaction
+            {
+                CardId = SelectedCardId,
+                TransactionDate = TransactionDate,
+                Description = "Abono",
+                Amount = Amount,
+                TransactionType = "Abono"
+            };
+
+        try
+        {
+            var response = await HttpClient.PostAsJsonAsync("https://localhost:7047/api/Transactions/SaveTransaction", transaction);
+
+            if (response.IsSuccessStatusCode)
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "Abono guardado exitosamente.");
+                // Redirigir a otra página o actualizar el estado
+                NavigationManager.NavigateTo("/fetchdata");
+            }
+            else
+            {
+                var errorMessage = await response.Content.ReadAsStringAsync();
+                Console.WriteLine($"Error al guardar el abono: {errorMessage}");
+                await JSRuntime.InvokeVoidAsync("alert", $"Error al guardar el abono: {errorMessage}");
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"Error al guardar la transacción: {ex.Message}");
+            await JSRuntime.InvokeVoidAsync("alert", $"Error al guardar la transacción: {ex.Message}");
+        }
+    }
+}

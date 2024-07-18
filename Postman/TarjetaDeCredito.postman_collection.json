@@ -1,0 +1,89 @@
+{
+	"info": {
+		"_postman_id": "50a6eb8d-2ffd-4048-889f-101b86d82b0d",
+		"name": "TarjetaDeCredito",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "33760753"
+	},
+	"item": [
+		{
+			"name": "ObtenerTarjetas",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "urlencoded",
+					"urlencoded": []
+				},
+				"url": "https://localhost:7047/api/creditcards"
+			},
+			"response": []
+		},
+		{
+			"name": "ObtenerTarjetasPorId",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": "https://localhost:7047/api/creditcards/{id}"
+			},
+			"response": []
+		},
+		{
+			"name": "CrearTarjetaC",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"userId\": 2,\r\n  \"cardNumber\": \"1234589652345678\",\r\n  \"currentBalance\": 0.00,\r\n  \"creditLimit\": 2000.00\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "https://localhost:7047/api/creditcards"
+			},
+			"response": []
+		},
+		{
+			"name": "ActualizarTarjetaC",
+			"request": {
+				"method": "PUT",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"cardId\": 7,\r\n  \"userId\": 2,\r\n  \"cardNumber\": \"1234589652345678\",\r\n  \"currentBalance\": 50.00,\r\n  \"creditLimit\": 1000.00\r\n}\r\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "https://localhost:7047/api/creditcards/{id}"
+			},
+			"response": []
+		},
+		{
+			"name": "EliminarTarjetaC",
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": "https://localhost:7047/api/creditcards/{id}"
+			},
+			"response": []
+		}
+	]
+}

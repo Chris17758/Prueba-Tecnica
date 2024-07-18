@@ -1,0 +1,194 @@
+﻿@page "/agregarcompra/{userId:int}"
+@using System.Text.Json
+@using TarjetaCPruebaAPI.Models
+@inject HttpClient HttpClient
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<h3>Registrar Compras</h3>
+<br />
+
+<div class="container">
+    @if (SelectedUser is null || SelectedUser.UserId == 0)
+    {
+        <p><em>No se pudo cargar datos.</em></p>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-5">
+                <div class="mb-3">
+                    <div class="form-group">
+                        <label for="userId">Titular de Tarjeta:</label>
+                        <input id="userId" class="form-control" value="@($"{SelectedUser.FirstName} {SelectedUser.LastName}")" readonly />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (SelectedUser.CreditCards == null || !SelectedUser.CreditCards.Any())
+        {
+            <p><em>Este usuario no tiene tarjetas registradas.</em></p>
+        }
+        else
+        {
+            <div class="row">
+                <div class="col-5">
+                    <div class="mb-3">
+                        <div class="form-group">
+                            <label for="cardId">Número de Tarjeta de Crédito:</label>
+                            <input id="cardId" class="form-control" value="@HideCardNumberMiddleDigits(SelectedUser.CreditCards.FirstOrDefault()?.CardNumber)" readonly />
+                            <input type="hidden" @bind="SelectedCardId" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="row">
+            <div class="col-5">
+                <div class="mb-3">
+                    <div class="form-group">
+                        <label for="transactionDate">Fecha y Hora de Transacción:</label>
+                        <input type="datetime-local" id="transactionDate" class="form-control" @bind="TransactionDate" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-5">
+                <div class="mb-3">
+                    <div class="form-group">
+                        <label for="description">Descripción:</label>
+                        <input type="text" id="description" class="form-control" @bind="Description" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-5">
+                <div class="mb-3">
+                    <div class="form-group">
+                        <label for="amount">Monto:</label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" id="amount" class="form-control" @bind="Amount" step="0.01" min="0" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="btn btn-primary" @onclick="SavePurchase">Guardar Compra</button>
+    }
+</div>
+
+@code {
+    private User SelectedUser;
+    private int? SelectedCardId { get; set; }
+    private DateTime TransactionDate { get; set; } = DateTime.Now; // Inicializar con la fecha y hora actual
+    private string Description { get; set; }
+    private decimal Amount { get; set; }
+
+    [Parameter]
+    public int userId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadSelectedUserAndCards();
+    }
+
+    private async Task LoadSelectedUserAndCards()
+    {
+        try
+        {
+            SelectedUser = await HttpClient.GetFromJsonAsync<User>($"https://localhost:7047/api/users/{userId}");
+            SelectedCardId = SelectedUser?.CreditCards?.FirstOrDefault()?.CardId;
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"Error al cargar usuario: {ex.Message}");
+        }
+    }
+
+    private string HideCardNumberMiddleDigits(string cardNumber)
+    {
+        if (string.IsNullOrEmpty(cardNumber) || cardNumber.Length != 16)
+        {
+            return cardNumber;
+        }
+
+        int visibleDigits = 6; // Mostrar los primeros 6 y últimos 4 dígitos
+        string hiddenPart = new string('*', 4); // Ocultar los 4 dígitos intermedios
+        string visiblePart = cardNumber.Substring(0, 6) + hiddenPart + cardNumber.Substring(10, 4);
+
+        return visiblePart;
+    }
+
+    private async Task SavePurchase()
+    {
+        if (SelectedCardId == null)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Por favor selecciona una tarjeta de crédito.");
+            return;
+        }
+
+        var selectedCard = SelectedUser.CreditCards.FirstOrDefault(c => c.CardId == SelectedCardId.Value);
+        if (selectedCard == null)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Tarjeta de crédito no válida.");
+            return;
+        }
+
+        if (Amount <= 0)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "El monto de la compra debe ser positivo.");
+            return;
+        }
+
+        if (Amount > selectedCard.AvailableBalance)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "El monto de la compra excede el saldo disponible.");
+            return;
+        }
+
+        var transaction = new Transaction
+            {
+                CardId = SelectedCardId.Value,
+                TransactionDate = TransactionDate,
+                Description = Description,
+                Amount = Amount,
+                TransactionType = "Compra" // Marcar como compra
+            };
+
+        try
+        {
+            var response = await HttpClient.PostAsJsonAsync("https://localhost:7047/api/Transactions/SaveTransaction", transaction);
+            response.EnsureSuccessStatusCode(); // Lanza excepción si la solicitud no tiene éxito
+
+            // Actualizar saldos después de la compra
+            selectedCard.CurrentBalance += Amount;
+            selectedCard.AvailableBalance -= Amount;
+
+            // Limpiar el formulario después de guardar la transacción
+            TransactionDate = DateTime.Now;
+            Description = "";
+            Amount = 0.0m;
+
+            // Mostrar mensaje de éxito usando JavaScript interop
+            await JSRuntime.InvokeVoidAsync("alert", "Compra guardada correctamente.");
+
+            // Redirigir a otra página después de guardar
+            NavigationManager.NavigateTo("/fetchdata"); // Ejemplo de redirección a la página de listado
+        }
+        catch (HttpRequestException ex)
+        {
+            Console.WriteLine($"Error al guardar compra: {ex.Message}");
+            // Mostrar mensaje de error usando JavaScript interop
+            await JSRuntime.InvokeVoidAsync("alert", "Error al guardar compra. Por favor revisa los datos e intenta nuevamente.");
+        }
+    }
+}
+
